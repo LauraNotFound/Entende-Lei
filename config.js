@@ -1,17 +1,17 @@
 /* ============================================================
-   Entende Lei — Configuração do modo LIVE (opcional)
+   Entende Lei — Configuração do modo LIVE (Gemini API)
    ------------------------------------------------------------
-   Para ativar a análise real via Gemini:
-     1. Crie uma API key gratuita em https://aistudio.google.com
-        (restrinja por HTTP referrer ao domínio do deploy).
-     2. Cole a key abaixo em `apiKey` — OU passe via URL:
-        ?live=1&key=SUA_KEY
-   Com a key configurada, acesse o app com ?live=1.
+   Ativação:
+     - enabled: true  → análise real para todos os acessos
+     - ou por URL:    ?live=1   (key daqui) / ?key=... (override)
    Se a chamada falhar, o app usa o mock automaticamente.
+
+   IMPORTANTE: restrinja esta key por HTTP referrer no AI Studio
+   (Application restrictions → lauranotfound.github.io/*).
    ============================================================ */
 
 window.LEXNOW_LIVE = {
-  enabled: false,
-  apiKey: "",
-  model: "gemini-2.5-flash",
+  enabled: true,
+  apiKey: "AIzaSyAA6isLAnaTN06n4E5CXgPwACZo-AjWJ40",
+  model: "gemini-3.6-flash",
 };

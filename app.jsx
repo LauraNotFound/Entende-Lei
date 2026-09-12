@@ -43,7 +43,7 @@ const LIVE_CFG = window.LEXNOW_LIVE || {};
 const URL_PARAMS = new URLSearchParams(window.location.search);
 const LIVE_MODE = URL_PARAMS.get("live") === "1" || LIVE_CFG.enabled === true;
 const LIVE_KEY = URL_PARAMS.get("key") || LIVE_CFG.apiKey || "";
-const LIVE_MODEL = LIVE_CFG.model || "gemini-2.5-flash";
+const LIVE_MODEL = LIVE_CFG.model || "gemini-3.6-flash";
 
 const RESPONSE_SCHEMA = {
   type: "object",
