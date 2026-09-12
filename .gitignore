@@ -1,0 +1,6 @@
+# Documentos fonte do hackathon (não fazem parte do app)
+*.docx
+*.pptx
+_slides_extract/
+_docx_text.txt
+_LexNow_*_text.txt
