@@ -9,8 +9,18 @@ const SCENARIOS = window.LEXNOW_SCENARIOS;
 const PROCESSING_STEPS = window.LEXNOW_PROCESSING_STEPS;
 const SAMPLE_INPUT = window.LEXNOW_SAMPLE_INPUT;
 const TIPO_STYLE = window.LEXNOW_TIPO_STYLE;
+const PROCESSOS = window.LEXNOW_PROCESSOS;
 
 const MIN_CHARS = 50;
+
+/* Detecta o tipo de identificador digitado na consulta pública */
+function detectDocType(q) {
+  const digits = q.replace(/\D/g, "");
+  if (digits.length === 11) return "CPF";
+  if (digits.length === 14) return "CNPJ";
+  if (digits.length === 20 || /^\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}$/.test(q.trim())) return "Nº CNJ";
+  return null;
+}
 
 /* Roteamento por palavra-chave: decide qual cenário mockado renderizar.
    "imissão"/"astreinte" → cenario2 | "petição"/"revelia" → cenario1 | default → cenario1 */
@@ -86,14 +96,95 @@ function Header({ step }) {
   );
 }
 
+/* ---------- Modal: Consulta pública por CPF/CNPJ/Nº CNJ ---------- */
+
+function ConsultaModal({ onClose, onSelect }) {
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState(null);
+  const docType = useMemo(() => detectDocType(query), [query]);
+  const canSearch = query.trim().length >= 3 && !loading;
+
+  useEffect(() => {
+    const onKey = (e) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const search = () => {
+    if (!canSearch) return;
+    setLoading(true);
+    setResults(null);
+    setTimeout(() => { setResults(PROCESSOS); setLoading(false); }, 900);
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose} role="presentation">
+      <div className="modal consulta-modal" role="dialog" aria-modal="true" aria-label="Consultar processos" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose} aria-label="Fechar consulta"><Icon name="x" size={17} /></button>
+        <div className="modal-anchor" style={{ background: "var(--blue-100)", color: "var(--blue-700)" }}>
+          <Icon name="file-search" size={30} />
+        </div>
+        <span className="modal-tipo" style={{ background: "var(--blue-100)", color: "var(--blue-700)" }}>Consulta pública</span>
+        <h3>Buscar seus processos</h3>
+        <p>Informe seu CPF, CNPJ ou o número do processo no formato CNJ.</p>
+
+        <div className="consulta-field">
+          <input
+            className="consulta-input"
+            placeholder="Ex.: 123.456.789-00 ou 5001234-56.2026.8.26.0100"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && search()}
+            aria-label="CPF, CNPJ ou número do processo"
+            autoFocus
+          />
+          {docType && <span className="doc-type">{docType}</span>}
+        </div>
+
+        <button className="btn btn-primary consulta-btn" onClick={search} disabled={!canSearch}>
+          {loading ? <span className="mini-spinner" /> : <Icon name="search" size={17} />}
+          {loading ? "Consultando tribunais..." : "Buscar processos"}
+        </button>
+
+        {results && (
+          <div className="consulta-results">
+            <p className="consulta-count">
+              <strong>{results.length}</strong> processos encontrados para <strong>{query}</strong>
+            </p>
+            <ul className="proc-results">
+              {results.map((p) => (
+                <li key={p.numero_cnj} className="proc-result">
+                  <div className="proc-result-info">
+                    <span className="proc-num">{p.numero_cnj}</span>
+                    <span className="proc-titulo">{p.titulo}</span>
+                    <span className="proc-trib"><Icon name="landmark" size={12} /> {p.tribunal}</span>
+                  </div>
+                  <div className="proc-result-side">
+                    <span className={"proc-sit " + (p.situacao === "Encerrado" ? "closed" : "open")}>{p.situacao}</span>
+                    <button className="btn btn-soft btn-sm" onClick={() => onSelect(p)}>
+                      Interpretar <Icon name="arrow-right" size={14} />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ---------- Tela 1: Input Multimodal ---------- */
 
-function InputScreen({ text, setText, onSubmit, onUpload }) {
+function InputScreen({ text, setText, onSubmit, onUpload, onSelectProcess }) {
   const len = text.trim().length;
   const valid = len >= MIN_CHARS;
   const words = useMemo(() => (text.trim() ? text.trim().split(/\s+/).length : 0), [text]);
   const fileRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
+  const [showConsulta, setShowConsulta] = useState(false);
 
   const pickFile = (e) => {
     const f = e.target.files && e.target.files[0];
@@ -171,6 +262,11 @@ function InputScreen({ text, setText, onSubmit, onUpload }) {
               Usar texto de exemplo
             </button>
           </div>
+
+          <button className="consulta-link" onClick={() => setShowConsulta(true)}>
+            <Icon name="search" size={16} />
+            Já tem processo? Consulte por CPF, CNPJ ou Nº CNJ
+          </button>
         </div>
 
         <div>
@@ -219,6 +315,13 @@ function InputScreen({ text, setText, onSubmit, onUpload }) {
           </div>
         </div>
       </div>
+
+      {showConsulta && (
+        <ConsultaModal
+          onClose={() => setShowConsulta(false)}
+          onSelect={onSelectProcess}
+        />
+      )}
     </section>
   );
 }
@@ -566,6 +669,14 @@ function App() {
     setStep(2);
   }, []);
 
+  // Consulta pública: o processo escolhido roteia ao cenário mapeado.
+  const handleSelectProcess = useCallback((proc) => {
+    const data = SCENARIOS[proc.cenario] || SCENARIOS.cenario1;
+    setFileName("processo " + proc.numero_cnj);
+    setResult({ ...data });
+    setStep(2);
+  }, []);
+
   const reset = useCallback(() => {
     setResult(null);
     setText("");
@@ -580,7 +691,7 @@ function App() {
     <React.Fragment>
       <Header step={step} />
       <main className="main">
-        {step === 1 && <InputScreen text={text} setText={setText} onSubmit={analyze} onUpload={handleUpload} />}
+        {step === 1 && <InputScreen text={text} setText={setText} onSubmit={analyze} onUpload={handleUpload} onSelectProcess={handleSelectProcess} />}
         {step === 2 && <ProcessingScreen onDone={() => setStep(3)} subject={fileName} />}
         {step === 3 && result && <Dashboard data={result} onReset={reset} />}
       </main>

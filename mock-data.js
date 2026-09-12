@@ -150,6 +150,40 @@ window.LEXNOW_SCENARIOS = {
   },
 };
 
+/* Consulta pública simulada: processos vinculados a CPF/CNPJ/Nº CNJ.
+   `cenario` indica qual payload do dashboard será renderizado ao
+   clicar em "Interpretar". */
+window.LEXNOW_PROCESSOS = [
+  {
+    numero_cnj: "5001234-56.2026.8.26.0100",
+    titulo: "Ação de obrigação de fazer c/c indenização",
+    tribunal: "TJSP — 3ª Vara Cível de São Paulo",
+    situacao: "Em andamento",
+    cenario: "cenario1",
+  },
+  {
+    numero_cnj: "5009871-22.2025.8.26.0455",
+    titulo: "Ação de imissão na posse",
+    tribunal: "TJSP — 1ª Vara Cível de Osasco",
+    situacao: "Em andamento",
+    cenario: "cenario2",
+  },
+  {
+    numero_cnj: "0014556-78.2024.8.19.0001",
+    titulo: "Ação de procedência com trânsito em julgado",
+    tribunal: "TJRJ — 5ª Vara Cível do Rio de Janeiro",
+    situacao: "Encerrado",
+    cenario: "cenario3",
+  },
+  {
+    numero_cnj: "1002233-44.2026.8.26.0225",
+    titulo: "Cumprimento de decisão com multa diária",
+    tribunal: "TJSP — 8ª Vara Cível de Guarulhos",
+    situacao: "Em andamento",
+    cenario: "cenario2",
+  },
+];
+
 /* Mapeamento tipo → ícone/âncora semântica (MVP sem imagens customizadas) */
 window.LEXNOW_TIPO_STYLE = {
   Latinismo: { icon: "scroll", label: "Termo em latim" },
