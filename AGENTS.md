@@ -8,7 +8,9 @@ processamento IA → dashboard Visual Law) conforme `LexNow-contexto.docx`.
 - Sem build step: React 18 UMD + Babel standalone + Lucide UMD via unpkg.
 - `index.html` — shell + CDNs
 - `styles.css` — design system (paleta navy/gold de baixa saturação, WCAG)
-- `mock-data.js` — `window.LEXNOW_SCENARIOS` (cenario1/2/3 no schema JSON oficial) + `LEXNOW_PROCESSING_STEPS` + `LEXNOW_SAMPLE_INPUT`
+- `mock-data.js` — `window.LEXNOW_SCENARIOS` (cenario1/2/3 no schema JSON oficial) + `LEXNOW_PROCESSING_STEPS` + `LEXNOW_DEMO_INPUTS` + `LEXNOW_PROCESSOS` (consulta CPF/CNPJ/CNJ)
+- `exemplo-upload.pdf` — PDF mínimo para demo de upload → cenario3
+- `GUIA-DEMO.md` — roteiro de apresentação
 - `app.jsx` — componentes React (`type="text/babel"`)
 
 ## Rodar localmente

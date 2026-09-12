@@ -7,7 +7,7 @@ const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
 const SCENARIOS = window.LEXNOW_SCENARIOS;
 const PROCESSING_STEPS = window.LEXNOW_PROCESSING_STEPS;
-const SAMPLE_INPUT = window.LEXNOW_SAMPLE_INPUT;
+const DEMO_INPUTS = window.LEXNOW_DEMO_INPUTS;
 const TIPO_STYLE = window.LEXNOW_TIPO_STYLE;
 const PROCESSOS = window.LEXNOW_PROCESSOS;
 
@@ -257,10 +257,16 @@ function InputScreen({ text, setText, onSubmit, onUpload, onSelectProcess }) {
               <Icon name="sparkles" size={18} />
               Simplificar Agora
             </button>
-            <button className="btn btn-soft" onClick={() => setText(SAMPLE_INPUT)}>
-              <Icon name="file-check" size={17} />
-              Usar texto de exemplo
-            </button>
+          </div>
+
+          <div className="demo-chips">
+            <span className="demo-chips-label"><Icon name="zap" size={14} />Exemplos rápidos:</span>
+            {DEMO_INPUTS.map((d) => (
+              <button key={d.id} className="demo-chip" onClick={() => setText(d.text)} title={d.chip}>
+                {d.chip}
+              </button>
+            ))}
+            <span className="demo-chips-hint">ou envie um arquivo →</span>
           </div>
 
           <button className="consulta-link" onClick={() => setShowConsulta(true)}>
