@@ -4,31 +4,12 @@
    No produto real, estes objetos viriam da API de IA.
    ============================================================ */
 
-/* Inputs prontos para a demonstração (chips na Tela 1).
-   O texto precisa conter a keyword que dispara o cenário desejado. */
-window.LEXNOW_DEMO_INPUTS = [
-  {
-    id: "peticao",
-    chip: "Petição inicial",
-    cenario: "cenario1",
-    text:
-      "Recebo a petição inicial e defiro parcialmente os pedidos liminares. " +
-      "Cite-se a parte ré para, querendo, apresentar contestação no prazo legal " +
-      "de 15 (quinze) dias úteis, sob pena de revelia e confissão quanto à " +
-      "matéria fática. Intime-se o autor. Publique-se, registre-se.",
-  },
-  {
-    id: "imissao",
-    chip: "Imissão na posse",
-    cenario: "cenario2",
-    text:
-      "Vistos. Nos autos de ação de imissão na posse, defiro o pedido, " +
-      "determinando a intimação dos ocupantes para desocupação voluntária em " +
-      "30 (trinta) dias, sob pena de multa diária (astreintes) de R$ 500,00 " +
-      "e, persistindo o descumprimento, de desocupação forçada com auxílio de " +
-      "oficial de justiça. Ex nunc. Intimem-se.",
-  },
-];
+/* Texto de exemplo: contém "petição" e "revelia" → roteia para o Cenário 1 */
+window.LEXNOW_SAMPLE_INPUT =
+  "Recebo a petição inicial e defiro parcialmente os pedidos liminares. " +
+  "Cite-se a parte ré para, querendo, apresentar contestação no prazo legal " +
+  "de 15 (quinze) dias úteis, sob pena de revelia e confissão quanto à " +
+  "matéria fática. Intime-se. Publique-se. Registre-se.";
 
 window.LEXNOW_PROCESSING_STEPS = [
   { label: "Lendo o documento e detectando a estrutura...", icon: "file-text", ms: 1500 },

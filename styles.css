@@ -925,42 +925,6 @@ button { font-family: inherit; }
 
 .modal .btn { width: 100%; margin-top: 20px; }
 
-/* demo chips (exemplos rápidos) */
-
-.demo-chips {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px dashed var(--border);
-}
-
-.demo-chips-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--ink-soft);
-}
-
-.demo-chip {
-  border: 1.5px solid var(--blue-600);
-  background: var(--blue-050);
-  color: var(--blue-700);
-  border-radius: 999px;
-  padding: 6px 14px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.demo-chip:hover { background: var(--blue-600); color: #fff; transform: translateY(-1px); }
-
-.demo-chips-hint { font-size: 0.75rem; color: var(--ink-faint); margin-left: auto; }
-
 /* ---------- Consulta pública (CPF/CNPJ/CNJ) ---------- */
 
 .consulta-link {

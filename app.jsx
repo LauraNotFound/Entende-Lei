@@ -7,7 +7,7 @@ const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
 const SCENARIOS = window.LEXNOW_SCENARIOS;
 const PROCESSING_STEPS = window.LEXNOW_PROCESSING_STEPS;
-const DEMO_INPUTS = window.LEXNOW_DEMO_INPUTS;
+const SAMPLE_INPUT = window.LEXNOW_SAMPLE_INPUT;
 const TIPO_STYLE = window.LEXNOW_TIPO_STYLE;
 const PROCESSOS = window.LEXNOW_PROCESSOS;
 
@@ -33,6 +33,128 @@ function detectScenario(text) {
   if (t.includes("peticao") || t.includes("revelia")) return "cenario1";
   return "cenario1";
 }
+
+/* ---------- Modo LIVE: análise real via Gemini ----------
+   Ativação: ?live=1 na URL (ou config.js → enabled:true).
+   Key: config.js → apiKey, ou ?key=... na URL.
+   Se a chamada falhar, o fluxo cai no mock silenciosamente. */
+
+const LIVE_CFG = window.LEXNOW_LIVE || {};
+const URL_PARAMS = new URLSearchParams(window.location.search);
+const LIVE_MODE = URL_PARAMS.get("live") === "1" || LIVE_CFG.enabled === true;
+const LIVE_KEY = URL_PARAMS.get("key") || LIVE_CFG.apiKey || "";
+const LIVE_MODEL = LIVE_CFG.model || "gemini-2.5-flash";
+
+const RESPONSE_SCHEMA = {
+  type: "object",
+  properties: {
+    id_processo: { type: "string" },
+    confianca_ia: { type: "number" },
+    texto_original: { type: "string" },
+    texto_simplificado: { type: "string" },
+    status_timeline: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          etapa: { type: "string" },
+          concluida: { type: "boolean" },
+          descricao: { type: "string" },
+          is_critica: { type: "boolean" },
+        },
+        required: ["etapa", "concluida", "descricao", "is_critica"],
+      },
+    },
+    direitos_deveres: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          tipo: { type: "string", enum: ["direito", "dever"] },
+          descricao: { type: "string" },
+          icone_id: { type: "string" },
+        },
+        required: ["tipo", "descricao", "icone_id"],
+      },
+    },
+    termos_chave: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          termo: { type: "string" },
+          tipo: { type: "string", enum: ["Latinismo", "Processual", "Substantivo"] },
+          explicacao: { type: "string" },
+          ancora_visual: { type: "string" },
+        },
+        required: ["termo", "tipo", "explicacao", "ancora_visual"],
+      },
+    },
+  },
+  required: ["id_processo", "confianca_ia", "texto_original", "texto_simplificado",
+             "status_timeline", "direitos_deveres", "termos_chave"],
+};
+
+const GEMINI_PROMPT =
+  'Você é o motor do Entende Lei, um tradutor de "juridiquês" para português claro (Brasil). ' +
+  "Analise o documento judicial abaixo e responda seguindo o schema JSON indicado.\n\n" +
+  "Regras:\n" +
+  "- texto_original: copie o documento integralmente.\n" +
+  '- texto_simplificado: reescreva em linguagem simples, frases curtas, sem jargão, dirigindo-se ao cidadão como "você".\n' +
+  "- status_timeline: 3 a 6 etapas do processo em ordem cronológica; descricao em linguagem simples; is_critica=true nas etapas que exigem ação ou têm prazo.\n" +
+  '- direitos_deveres: 3 a 6 itens; icone_id = nome de ícone Lucide em kebab-case (ex.: "clock", "bell", "shield-check", "map-pin", "calendar-check", "file-text").\n' +
+  '- termos_chave: 3 a 6 termos difíceis do documento; explicacao simples; ancora_visual = "icon:<nome-lucide>".\n' +
+  '- id_processo: número do processo se constar no texto; senão gere um código como "2026-REAL-001".\n' +
+  "- confianca_ia: número entre 0.70 e 0.99 estimando sua própria confiança.\n\n" +
+  "DOCUMENTO:\n";
+
+function validateResult(d) {
+  return d && typeof d === "object" &&
+    typeof d.texto_original === "string" && d.texto_original.length > 0 &&
+    typeof d.texto_simplificado === "string" && d.texto_simplificado.length > 0 &&
+    typeof d.confianca_ia === "number" &&
+    Array.isArray(d.status_timeline) && d.status_timeline.length > 0 &&
+    Array.isArray(d.direitos_deveres) &&
+    Array.isArray(d.termos_chave);
+}
+
+async function callGemini(text) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 25000);
+  try {
+    const resp = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/" +
+        encodeURIComponent(LIVE_MODEL) + ":generateContent?key=" + encodeURIComponent(LIVE_KEY),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: ctrl.signal,
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: GEMINI_PROMPT + text }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: RESPONSE_SCHEMA,
+            temperature: 0.3,
+          },
+        }),
+      }
+    );
+    if (!resp.ok) throw new Error("Gemini HTTP " + resp.status);
+    const json = await resp.json();
+    const raw = json.candidates && json.candidates[0] &&
+      json.candidates[0].content && json.candidates[0].content.parts &&
+      json.candidates[0].content.parts[0] && json.candidates[0].content.parts[0].text;
+    if (!raw) throw new Error("Resposta vazia");
+    const data = JSON.parse(raw);
+    if (!validateResult(data)) throw new Error("Schema inválido");
+    if (!data.id_processo) data.id_processo = "2026-REAL-001";
+    return data;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /* ---------- Icon: renderiza SVGs do Lucide dinamicamente ---------- */
 
@@ -257,16 +379,10 @@ function InputScreen({ text, setText, onSubmit, onUpload, onSelectProcess }) {
               <Icon name="sparkles" size={18} />
               Simplificar Agora
             </button>
-          </div>
-
-          <div className="demo-chips">
-            <span className="demo-chips-label"><Icon name="zap" size={14} />Exemplos rápidos:</span>
-            {DEMO_INPUTS.map((d) => (
-              <button key={d.id} className="demo-chip" onClick={() => setText(d.text)} title={d.chip}>
-                {d.chip}
-              </button>
-            ))}
-            <span className="demo-chips-hint">ou envie um arquivo →</span>
+            <button className="btn btn-soft" onClick={() => setText(SAMPLE_INPUT)}>
+              <Icon name="file-check" size={17} />
+              Usar texto de exemplo
+            </button>
           </div>
 
           <button className="consulta-link" onClick={() => setShowConsulta(true)}>
@@ -334,7 +450,7 @@ function InputScreen({ text, setText, onSubmit, onUpload, onSelectProcess }) {
 
 /* ---------- Tela 2: Processamento (Labor Perception Bias) ---------- */
 
-function ProcessingScreen({ onDone, subject }) {
+function ProcessingScreen({ onDone, subject, live }) {
   const [current, setCurrent] = useState(0);
   const total = PROCESSING_STEPS.length;
 
@@ -393,7 +509,9 @@ function ProcessingScreen({ onDone, subject }) {
 
         <div className="proc-note">
           <Icon name="shield-check" size={15} />
-          Seus dados não saem do dispositivo nesta demonstração.
+          {live
+            ? "Modo ao vivo: análise real via IA — se a rede falhar, a simulação assume."
+            : "Seus dados não saem do dispositivo nesta demonstração."}
         </div>
       </div>
     </section>
@@ -655,15 +773,26 @@ function App() {
   const [text, setText] = useState("");
   const [result, setResult] = useState(null);
   const [fileName, setFileName] = useState(null);
+  const liveRef = useRef(null);
 
-  // Simula a chamada à API de IA: roteia o cenário pelo conteúdo do texto.
+  // Roteia o cenário pelo conteúdo do texto. Em modo live, chama a IA real
+  // em paralelo com a coreografia — se falhar/expirar, cai no mock.
   const analyze = useCallback(() => {
-    const data = SCENARIOS[detectScenario(text)];
+    const t = text.trim();
+    const fallback = SCENARIOS[detectScenario(t)];
+    const fallbackResult = {
+      ...fallback,
+      texto_original: t.length >= MIN_CHARS ? t : fallback.texto_original,
+    };
     setFileName(null);
-    setResult({
-      ...data,
-      texto_original: text.trim().length >= MIN_CHARS ? text.trim() : data.texto_original,
-    });
+    if (LIVE_MODE && LIVE_KEY) {
+      liveRef.current = Promise.race([
+        callGemini(t).catch(() => null),
+        sleep(12000).then(() => null),
+      ]).then((d) => d || fallbackResult);
+    } else {
+      liveRef.current = Promise.resolve(fallbackResult);
+    }
     setStep(2);
   }, [text]);
 
@@ -671,7 +800,7 @@ function App() {
   const handleUpload = useCallback((file) => {
     if (!file) return;
     setFileName(file.name || "documento enviado");
-    setResult({ ...SCENARIOS.cenario3 });
+    liveRef.current = Promise.resolve({ ...SCENARIOS.cenario3 });
     setStep(2);
   }, []);
 
@@ -679,14 +808,21 @@ function App() {
   const handleSelectProcess = useCallback((proc) => {
     const data = SCENARIOS[proc.cenario] || SCENARIOS.cenario1;
     setFileName("processo " + proc.numero_cnj);
-    setResult({ ...data });
+    liveRef.current = Promise.resolve({ ...data });
     setStep(2);
+  }, []);
+
+  const finishAnalysis = useCallback(async () => {
+    const data = await (liveRef.current || Promise.resolve(SCENARIOS.cenario1));
+    setResult(data);
+    setStep(3);
   }, []);
 
   const reset = useCallback(() => {
     setResult(null);
     setText("");
     setFileName(null);
+    liveRef.current = null;
     setStep(1);
     window.scrollTo({ top: 0 });
   }, []);
@@ -698,7 +834,7 @@ function App() {
       <Header step={step} />
       <main className="main">
         {step === 1 && <InputScreen text={text} setText={setText} onSubmit={analyze} onUpload={handleUpload} onSelectProcess={handleSelectProcess} />}
-        {step === 2 && <ProcessingScreen onDone={() => setStep(3)} subject={fileName} />}
+        {step === 2 && <ProcessingScreen onDone={finishAnalysis} subject={fileName} live={LIVE_MODE && !!LIVE_KEY} />}
         {step === 3 && result && <Dashboard data={result} onReset={reset} />}
       </main>
     </React.Fragment>
